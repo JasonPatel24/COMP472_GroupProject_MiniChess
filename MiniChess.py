@@ -54,7 +54,8 @@ class MiniChess:
     """
     def is_valid_move(self, game_state, move):
         # Check if move is in list of valid moves
-        return True
+        valid_moves = self.valid_moves(game_state)
+        return move in valid_moves
 
     """
     Returns a list of valid moves
@@ -86,6 +87,7 @@ class MiniChess:
                     moves+=self.calculateKnightMoves(game_state,row,column)
                 if 'p' in piece and piece.startswith(turn[0]):  #PAWN
                     moves+=self.calculatePawnMoves(game_state,row,column)
+        print("FOR VERIFICATION, DELET LATER - Valid moves:", moves) #DELETE LATER (just to print all the valid moves)
         return moves
     
     def calculateKingMoves(self, game_state, row, column):
@@ -110,7 +112,10 @@ class MiniChess:
             new_row = row + rowDirection
             new_col = column + columnDirection
             if 0 <= new_row < 5 and 0 <= new_col < 5:  # board bounds
-                possibleMoves.append(columnLetters[column]  + str(6-row) + " " + columnLetters[new_col] + str(6-new_row))          
+                if board[new_row][new_col][0] == game_state["turn"][0]: # cannot move in friendly pawn space
+                    continue
+                #either enemy pawn or simple move
+                possibleMoves.append(columnLetters[column]  + str(5-row) + " " + columnLetters[new_col] + str(5-new_row))          
         return possibleMoves
     
     def calculateQueenMoves(self, game_state, row, column):
@@ -140,9 +145,10 @@ class MiniChess:
                     break
                 #stop move if the Queen hits a piece in that direction (cannot jump over) the last possible move should be taking the piece
                 if board[new_row][new_column] != '.':
-                    possibleMoves.append(columnLetters[column] + str(6-row) + " " + columnLetters[new_column] + str(6-new_row)) 
+                    if board[new_row][new_column][0]!=game_state["turn"][0]:
+                        possibleMoves.append(columnLetters[column] + str(5-row) + " " + columnLetters[new_column] + str(5-new_row)) 
                     break
-                possibleMoves.append(columnLetters[column] + str(6-row) + " " + columnLetters[new_column] + str(6-new_row))  
+                possibleMoves.append(columnLetters[column] + str(5-row) + " " + columnLetters[new_column] + str(5-new_row))  
         return possibleMoves
     
     def calculatePawnMoves(self, game_state, row, column):
@@ -154,14 +160,62 @@ class MiniChess:
         #The pawn can move in twi directions, based on the players colour (black or white)
         #Black moves downwards, white moves upwards
         direction = -1
-        if board.turn == "white":
+        if game_state["turn"]=="white":
             direction = 1
         if 0<=row+direction<5:
             #Simple move
-            possibleMoves.append(columnLetters[column] + str(6-row) + " " + columnLetters[column] + str(6-row+direction))
+            possibleMoves.append(columnLetters[column] + str(5-row) + " " + columnLetters[column] + str(5-row+direction))
         #Check if the pawn can capture, in which case it may move diagonally
-        firstDiagonal = ()
-        secondDiagonal = ()
+        if board[row+direction][column+1]!='.' and board[row+direction][column+1][0]!=game_state["turn"][0]:
+            possibleMoves.append(columnLetters[column] + str(5-row) + " " + columnLetters[column+1] + str(5-row+direction))
+        if board[row+direction][column-1]!='.' and board[row+direction][column-1][0]!=game_state["turn"][0]:
+            possibleMoves.append(columnLetters[column] + str(5-row) + " " + columnLetters[column-1] + str(5-row+direction))
+        return possibleMoves
+    
+    def calculateBishopMoves(self, game_state, row, column):
+        #The Bishop can only move diagonally any number of squares, in any direction.
+        possibleMoves=[]
+        board=game_state["board"]
+        columnLetters = ['A', 'B', 'C', 'D', 'E']
+        directions=[
+            (1,1),
+            (1,-1),
+            (-1,1),
+            (-1,-1)
+        ]
+        for rowDirection, columnDirection in directions:
+            new_row=row
+            new_column=column
+            while True:
+                new_row+=rowDirection
+                new_column+=columnDirection
+                if not (0<=new_column<5 and 0<=new_row<5):
+                    break
+                #Stop if piece is hit
+                if board[new_row][new_column]!='.':
+                    #capture opponent piece
+                    if board[new_row][new_column][0]!=game_state["turn"][0]:
+                        possibleMoves.append(columnLetters[column] + str(5-row) + " " + columnLetters[new_column] + str(5-new_row))
+                    break
+                possibleMoves.append(columnLetters[column] + str(5-row) + " " + columnLetters[new_column] + str(5-new_row))  
+        return possibleMoves
+    
+    def calculateKnightMoves(self, game_state, row, column):
+        # The Knight moves in an L-shape the same way as regular chess (2 squares in one direction and 1 in a perpendicular direction) in any direction.
+        # It is the only piece capable of jumping over other pieces.
+        possibleMoves = []
+        board = game_state["board"]
+        columnLetters = ['A', 'B', 'C', 'D', 'E']
+        knight_moves = [
+            (2, 1), (2, -1), (-2, 1), (-2, -1),
+            (1, 2), (1, -2), (-1, 2), (-1, -2)
+        ]
+        for rowDirection, columnDirection in knight_moves:
+            new_row = row + rowDirection
+            new_col = column + columnDirection
+            if 0 <= new_row < 5 and 0 <= new_col < 5:  # board bounds
+                if board[new_row][new_col] == '.' or board[new_row][new_col][0] != game_state["turn"][0]:  # empty or opponent's piece
+                    possibleMoves.append(columnLetters[column] + str(5 - row) + " " + columnLetters[new_col] + str(5 - new_row))
         return possibleMoves
     """
     Modify to board to make a move
