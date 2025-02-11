@@ -55,7 +55,8 @@ class MiniChess:
     def is_valid_move(self, game_state, move):
         # Check if move is in list of valid moves
         valid_moves = self.valid_moves(game_state)
-        return move in valid_moves
+        move_str = f"{chr(move[0][1] + ord('A'))}{5 - move[0][0]} {chr(move[1][1] + ord('A'))}{5 - move[1][0]}"
+        return move_str in valid_moves
 
     """
     Returns a list of valid moves
@@ -87,7 +88,6 @@ class MiniChess:
                     moves+=self.calculateKnightMoves(game_state,row,column)
                 if 'p' in piece and piece.startswith(turn[0]):  #PAWN
                     moves+=self.calculatePawnMoves(game_state,row,column)
-        print("FOR VERIFICATION, DELET LATER - Valid moves:", moves) #DELETE LATER (just to print all the valid moves)
         return moves
     
     def calculateKingMoves(self, game_state, row, column):
@@ -159,17 +159,17 @@ class MiniChess:
         columnLetters = ['A', 'B', 'C', 'D', 'E']
         #The pawn can move in twi directions, based on the players colour (black or white)
         #Black moves downwards, white moves upwards
-        direction = -1
+        direction = 1   #Note: the direction is the value in the array!!
         if game_state["turn"]=="white":
-            direction = 1
-        if 0<=row+direction<5:
-            #Simple move
-            possibleMoves.append(columnLetters[column] + str(5-row) + " " + columnLetters[column] + str(5-row+direction))
+            direction = -1
+        if 0<=row+direction<5 and board[row + direction][column] == '.':
+            #Simple move with no pieces in the way
+            possibleMoves.append(columnLetters[column] + str(5-row) + " " + columnLetters[column] + str(5-row-direction))
         #Check if the pawn can capture, in which case it may move diagonally
         if board[row+direction][column+1]!='.' and board[row+direction][column+1][0]!=game_state["turn"][0]:
-            possibleMoves.append(columnLetters[column] + str(5-row) + " " + columnLetters[column+1] + str(5-row+direction))
+            possibleMoves.append(columnLetters[column] + str(5-row) + " " + columnLetters[column+1] + str(5-row-direction))
         if board[row+direction][column-1]!='.' and board[row+direction][column-1][0]!=game_state["turn"][0]:
-            possibleMoves.append(columnLetters[column] + str(5-row) + " " + columnLetters[column-1] + str(5-row+direction))
+            possibleMoves.append(columnLetters[column] + str(5-row) + " " + columnLetters[column-1] + str(5-row-direction))
         return possibleMoves
     
     def calculateBishopMoves(self, game_state, row, column):
@@ -267,6 +267,8 @@ class MiniChess:
         print("Welcome to Mini Chess! Enter moves as 'B2 B3'. Type 'exit' to quit.")
         while True:
             self.display_board(self.current_game_state)
+            valid_moves = self.valid_moves(self.current_game_state)
+            print(f"Valid moves for {self.current_game_state['turn']}: {valid_moves}")  # Print all valid moves
             move = input(f"{self.current_game_state['turn'].capitalize()} to move: ")
             if move.lower() == 'exit':
                 print("Game exited.")
