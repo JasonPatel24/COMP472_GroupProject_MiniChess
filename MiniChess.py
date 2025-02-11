@@ -68,8 +68,101 @@ class MiniChess:
         # Return a list of all the valid moves.
         # Implement basic move validation
         # Check for out-of-bounds, correct turn, move legality, etc
-        return
-
+        board=game_state["board"]
+        turn=game_state["turn"]
+        moves=[] #Keeps a list of all possible moves on the current board, this is recalculated each turn
+        for row in range(5):
+            for column in range(5):
+                piece = board[row][column]
+                if piece == '.':                                #No piece at this position on the board
+                    continue
+                if 'K' in piece and piece.startswith(turn[0]):  #KING
+                    moves+=self.calculateKingMoves(game_state,row,column)
+                if 'B' in piece and piece.startswith(turn[0]):  #BISHOP
+                    moves+=self.calculateBishopMoves(game_state,row,column)
+                if 'Q' in piece and piece.startswith(turn[0]):  #QUEEN
+                    moves+=self.calculateQueenMoves(game_state,row,column)
+                if 'N' in piece and piece.startswith(turn[0]):  #KNIGHT
+                    moves+=self.calculateKnightMoves(game_state,row,column)
+                if 'p' in piece and piece.startswith(turn[0]):  #PAWN
+                    moves+=self.calculatePawnMoves(game_state,row,column)
+        return moves
+    
+    def calculateKingMoves(self, game_state, row, column):
+        # The King moves 1 square in any direction.
+        # Unlike regular chess, the king can move to positions where it is under attack.
+        # Capturing the opponent’s king results in a win.  
+        board = game_state["board"]
+        possibleMoves = []
+        columnLetters = ['A', 'B', 'C', 'D', 'E'] #To convert the array position to the actual letter on the board
+        # The king can move in 8 directions (diagonal and orthogonal)
+        directions = [
+            (1, 0), 
+            (1, 1),
+            (1, -1),
+            (0, 1),
+            (0, -1),
+            (-1, 0),
+            (-1, 1),
+            (-1, -1)
+        ]
+        for rowDirection, columnDirection in directions:
+            new_row = row + rowDirection
+            new_col = column + columnDirection
+            if 0 <= new_row < 5 and 0 <= new_col < 5:  # board bounds
+                possibleMoves.append(columnLetters[column]  + str(6-row) + " " + columnLetters[new_col] + str(6-new_row))          
+        return possibleMoves
+    
+    def calculateQueenMoves(self, game_state, row, column):
+        #The Queen is able to move any number of squares in any direction 
+        #(similar to the king, but not limited to a single space)
+        board = game_state["board"]
+        possibleMoves = []
+        columnLetters = ['A', 'B', 'C', 'D', 'E'] #To convert the array position to the actual letter on the board
+        #The Queen can move in 8 directions until the limit of the board OR another piece is reached
+        directions = [
+            (1, 0), 
+            (1, 1),
+            (1, -1),
+            (0, 1),
+            (0, -1),
+            (-1, 0),
+            (-1, 1),
+            (-1, -1)
+        ]
+        for rowDirection, columnDirection in directions:
+            new_row=row
+            new_column=column
+            while True:
+                new_row+=rowDirection
+                new_column+=columnDirection
+                if not (0<=new_column<5 and 0<=new_row<5):
+                    break
+                #stop move if the Queen hits a piece in that direction (cannot jump over) the last possible move should be taking the piece
+                if board[new_row][new_column] != '.':
+                    possibleMoves.append(columnLetters[column] + str(6-row) + " " + columnLetters[new_column] + str(6-new_row)) 
+                    break
+                possibleMoves.append(columnLetters[column] + str(6-row) + " " + columnLetters[new_column] + str(6-new_row))  
+        return possibleMoves
+    
+    def calculatePawnMoves(self, game_state, row, column):
+        #moves a single square forward and can capture pieces that are a single square diagonally in front of it. 
+        #When reaching the other side of the board (row 5 for white and row 1 for black), the pawn is promoted to a Queen.
+        possibleMoves= []
+        board = game_state["board"]
+        columnLetters = ['A', 'B', 'C', 'D', 'E']
+        #The pawn can move in twi directions, based on the players colour (black or white)
+        #Black moves downwards, white moves upwards
+        direction = -1
+        if board.turn == "white":
+            direction = 1
+        if 0<=row+direction<5:
+            #Simple move
+            possibleMoves.append(columnLetters[column] + str(6-row) + " " + columnLetters[column] + str(6-row+direction))
+        #Check if the pawn can capture, in which case it may move diagonally
+        firstDiagonal = ()
+        secondDiagonal = ()
+        return possibleMoves
     """
     Modify to board to make a move
 
@@ -131,3 +224,9 @@ class MiniChess:
                 continue
 
             self.make_move(self.current_game_state, move)
+
+
+
+if __name__ == "__main__":
+    game = MiniChess()
+    game.play()
