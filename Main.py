@@ -1,5 +1,5 @@
 import MiniChess
 
 if __name__ == "__main__":
-    game = MiniChess.MiniChess()
+    game = MiniChess()
     game.play()
