@@ -2,6 +2,7 @@ import math
 import copy
 import time
 import argparse
+import os
 
 class MiniChess:
     def __init__(self):
@@ -109,6 +110,81 @@ class MiniChess:
             return None
 
     """
+    Create output file
+
+    Args:
+        - Parameters being used
+        - Initial state
+    Returns:
+        - File used for output
+    """
+    def create_game_trace_file(self, timeout, max_turns, player_1_type, player_2_type, alpha_beta, initial_state, heuristic=None):
+        # Create output file in downloads folder
+        downloads_folder = os.path.join(os.path.expanduser("~"), "Downloads")
+        filename = os.path.join(downloads_folder, f"gameTrace-{str(alpha_beta).lower()}-{timeout}-{max_turns}.txt")
+        file = open(filename, "w")
+
+        # Write the game parameters
+        file.write("=== Game Parameters ===\n")
+        file.write(f"Timeout: {timeout} seconds\n")
+        file.write(f"Max turns: {max_turns}\n")
+        file.write(f"Player 1: {player_1_type} & Player 2: {player_2_type}\n")
+        # AI parameters
+        if player_1_type == "AI" or player_2_type == "AI":
+            file.write(f"Alpha-Beta: {'ON' if alpha_beta else 'OFF'}\n")
+            file.write(f"Heuristic used: {heuristic}\n")
+
+        # Initial board configuration
+        file.write("\n=== Initial Board Configuration ===\n")
+        for i, row in enumerate(initial_state["board"], start=1):
+            file.write(f"{6-i} {' '.join(piece.rjust(3) for piece in row)}\n")
+        file.write("    A   B   C   D   E\n")
+        
+        # Game trace
+        file.write("\n=== Game Trace ===\n")
+
+        return file
+    
+    """
+    Log action to output file
+
+    Args:
+        - File
+        - Action information
+        - New state
+    Returns:
+        - None
+    """
+    def log_action(self, file, turn, player, action, player_type, current_state, time_taken=None, heuristic_score=None, alpha_beta_score=None):
+        file.write(f"Player: {player}, Turn #{turn}, Action: {action}\n")
+        if player_type == "AI":
+            file.write(f"Time for this action: {time_taken:.2f} sec\n")
+            file.write(f"Heuristic score: {heuristic_score}\n")
+            file.write(f"Alpha-Beta search score: {alpha_beta_score}\n")
+
+        file.write("=== New Board Configuration ===\n")
+        for i, row in enumerate(current_state["board"], start=1):
+            file.write(f"{6-i} {' '.join(piece.rjust(3) for piece in row)}\n")
+        file.write("    A   B   C   D   E\n")
+
+        # add cumulative ai info here once needed
+    
+    """
+    Log game over to output file
+
+    Args:
+        - parameters being used
+    Returns:
+        - None
+    """
+    def log_end(self, file, turn, tie, player=None):
+        if tie:
+            file.write(f"{player} won in {turn} turns!\n")
+        else:
+            file.write(f"Game tied in {turn} turns.\n")
+        file.close()
+
+    """
     Game loop
 
     Args:
@@ -118,11 +194,17 @@ class MiniChess:
     """
     def play(self):
         print("Welcome to Mini Chess! Enter moves as 'B2 B3'. Type 'exit' to quit.")
+
+        # Create output file (add params later)
+        output_file = self.create_game_trace_file("5", "100", "H", "H", False, self.current_game_state, None)
+
         while True:
             self.display_board(self.current_game_state)
             move = input(f"{self.current_game_state['turn'].capitalize()} to move: ")
             if move.lower() == 'exit':
                 print("Game exited.")
+                # add param to log
+                self.log_end(output_file, "1", True, None)
                 exit(1)
 
             move = self.parse_input(move)
@@ -131,3 +213,8 @@ class MiniChess:
                 continue
 
             self.make_move(self.current_game_state, move)
+            # add params to log
+            self.log_action(output_file, "1", "White", move, "H", self.current_game_state, None, None, None)
+
+        # Log game is over
+        # self.log_end(output_file, "1", False, "White")
