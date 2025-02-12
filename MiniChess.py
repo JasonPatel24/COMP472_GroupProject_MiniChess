@@ -5,6 +5,10 @@ import argparse
 import os
 
 class MiniChess:
+    WHITE_KING_CAPTURED = 'wkc'
+    BLACK_KING_CAPTURED = 'bkc'
+    num_pieces = 12
+
     def __init__(self):
         self.current_game_state = self.init_board()
 
@@ -158,7 +162,7 @@ class MiniChess:
         possibleMoves= []
         board = game_state["board"]
         columnLetters = ['A', 'B', 'C', 'D', 'E']
-        #The pawn can move in twi directions, based on the players colour (black or white)
+        #The pawn can move in two directions, based on the players colour (black or white)
         #Black moves downwards, white moves upwards
         direction = 1   #Note: the direction is the value in the array!!
         if game_state["turn"]=="white":
@@ -218,6 +222,55 @@ class MiniChess:
                 if board[new_row][new_col] == '.' or board[new_row][new_col][0] != game_state["turn"][0]:  # empty or opponent's piece
                     possibleMoves.append(columnLetters[column] + str(5 - row) + " " + columnLetters[new_col] + str(5 - new_row))
         return possibleMoves
+    
+    def isKingCaptured(self, game_state):
+        whiteKingCaptured = True
+        blackKingCaptured = True
+
+        for row in range(0, len(game_state["board"])):
+            for col in range(0, len(game_state["board"][row])):
+                # Check the board and verify whether the black or white king is still on the board
+                if game_state["board"][row][col] == 'wK':
+                    whiteKingCaptured = False
+
+                if game_state["board"][row][col] == 'bK':
+                    blackKingCaptured = False
+
+        # Notify caller whether the black or white king has been captured, or say nothing if both kings are on the board
+        if whiteKingCaptured:
+            return self.WHITE_KING_CAPTURED
+        
+        elif blackKingCaptured:
+            return self.BLACK_KING_CAPTURED
+        
+        else:
+            return ""
+
+    def promotePawn(self, game_state):
+        # Promote the black pawns to queens if they're on white's side
+        for i in range(0, len(game_state["board"][4])):
+            if game_state["board"][4][i] == "bp":
+                game_state["board"][4][i] = "bQ"
+            
+
+        # Promote the white pawns to queens if they're on black's side
+        for i in range(0, len(game_state["board"][0])):
+            if game_state["board"][0][i] == "wp":
+                game_state["board"][0][i] = "wQ"
+
+        # If no pawns have reached the opposite end of the board, nothing happens
+
+    def checkNumberOfPieces(self, game_state):
+        pieces = 0
+
+        # Iterate over the board and see how many positions are occupied, this is the number of pieces on the board
+        for row in range(0, len(game_state["board"])):
+            for col in range(0, len(game_state["board"][row])):
+                if game_state["board"][row][col] != '.':
+                    pieces += 1
+
+        return pieces
+
     """
     Modify to board to make a move
 
@@ -341,11 +394,13 @@ class MiniChess:
     """
     def play(self):
         print("Welcome to Mini Chess! Enter moves as 'B2 B3'. Type 'exit' to quit.")
-
+  
         # Create output file (add params later)
         output_file = self.create_game_trace_file("5", "100", "H", "H", False, self.current_game_state, None)
-
-        while True:
+      
+        # Play until a king is captured or we have a draw
+        drawTimer = 20
+        while self.isKingCaptured(self.current_game_state) == "" and drawTimer > 0:
             self.display_board(self.current_game_state)
             valid_moves = self.valid_moves(self.current_game_state)
             print(f"Valid moves for {self.current_game_state['turn']}: {valid_moves}")  # Print all valid moves
@@ -362,8 +417,41 @@ class MiniChess:
                 continue
 
             self.make_move(self.current_game_state, move)
+
             # add params to log
             self.log_action(output_file, "1", "White", move, "H", self.current_game_state, None, None, None)
+            self.promotePawn(self.current_game_state) # Check if a pawn reached the other end of the board at the end of this turn, if so, promote it.
+            
+            # Check if game is moving towards a draw
+            new_num_pieces = self.checkNumberOfPieces(self.current_game_state)
+            if (self.num_pieces > new_num_pieces):
+                # A piece has been captured
+                drawTimer = 20
+                self.num_pieces = new_num_pieces
+
+            else:
+                # No pieces have been captured this turn
+                drawTimer -= 1
+
+        # If game has ended, check which king is captured
+        self.display_board(self.current_game_state)
+
+        result = self.isKingCaptured(self.current_game_state)
+
+        if result == self.WHITE_KING_CAPTURED:
+            # Black wins
+            print("Black wins!")
+
+        elif result == self.BLACK_KING_CAPTURED:
+            # White wins
+            print("White wins!")
+
+        else:
+            # If no king is captured, then we have a draw
+            print("Draw!")
+
+        print("Thank you for playing!")
+        exit(1)
 
         # Log game is over
         # self.log_end(output_file, "1", False, "White")
