@@ -20,4 +20,9 @@ Step 5) (add this step for parameter setup)
 - isKingCaptured: Checks the board to see if either the black or white king is no longer present. Returns a string indicating which king is captured.
 - promotePawn: Checks the first and last rows of the board for any pawns from the opposing side. If such pawns are present in those rows, they become queens.
 - checkNumberOfPieces: Counts the current number of pieces at play on the board.
+- calculateKingMoves: Returns a list of all the possible moves (in "B2 B3" format) of the king depending on its position (row and column in game_state["board"] ).
+- calculateQueenMoves: Returns a list of all the possible moves (in "B2 B3" format) of a Queen depending on its position (row and column in game_state["board"] ).
+- calculatePawnMoves: Returns a list of all the possible moves (in "B2 B3" format) of a pawn depending on its position (row and column in game_state["board"] ).
+- calculateBishopMoves: Returns a list of all the possible moves (in "B2 B3" format) of the Bishop depending on its position (row and column in game_state["board"] ).
+- calculateKnightMoves: Returns a list of all the possible moves (in "B2 B3" format) of the Knight depending on its position (row and column in game_state["board"] ).
 - (add your functions here)
