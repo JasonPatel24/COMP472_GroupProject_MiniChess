@@ -17,4 +17,7 @@ Step 5) (add this step for parameter setup)
 
 ## Added Classes:
 - create_game_trace_file, log_action and log_end: these functions create the output file, and log what passes in the game
-- (add your functions here)  
+- isKingCaptured: Checks the board to see if either the black or white king is no longer present. Returns a string indicating which king is captured.
+- promotePawn: Checks the first and last rows of the board for any pawns from the opposing side. If such pawns are present in those rows, they become queens.
+- checkNumberOfPieces: Counts the current number of pieces at play on the board.
+- (add your functions here)
