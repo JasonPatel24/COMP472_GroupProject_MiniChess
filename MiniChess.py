@@ -8,6 +8,7 @@ class MiniChess:
     WHITE_KING_CAPTURED = 'wkc'
     BLACK_KING_CAPTURED = 'bkc'
     num_pieces = 12
+    turn_counter = 1
 
     def __init__(self):
         self.current_game_state = self.init_board()
@@ -42,6 +43,8 @@ class MiniChess:
     """
     def display_board(self, game_state):
         print()
+        turn_anouncement=f"Turn # {self.turn_counter}"
+        print(turn_anouncement)
         for i, row in enumerate(game_state["board"], start=1):
             print(str(6-i) + "  " + ' '.join(piece.rjust(3) for piece in row))
         print()
@@ -410,14 +413,16 @@ class MiniChess:
                 # add param to log
                 self.log_end(output_file, "1", True, None)
                 exit(1)
-
+            move_string = move # SAVE BEFORE CONVERSION FOR EASIER PRINTING
             move = self.parse_input(move)
             if not move or not self.is_valid_move(self.current_game_state, move):
                 print("Invalid move. Try again.")
                 continue
-
+            current_player=self.current_game_state['turn'].capitalize() #SAVE BEFORE MAKING THE MOVE
             self.make_move(self.current_game_state, move)
-
+            self.turn_counter+=1
+            action_display = f"{current_player} moved from {move_string.split()[0]} to {move_string.split()[1]}"
+            print(action_display)
             # add params to log
             self.log_action(output_file, "1", "White", move, "H", self.current_game_state, None, None, None)
             self.promotePawn(self.current_game_state) # Check if a pawn reached the other end of the board at the end of this turn, if so, promote it.
@@ -440,15 +445,15 @@ class MiniChess:
 
         if result == self.WHITE_KING_CAPTURED:
             # Black wins
-            print("Black wins!")
+            print(f"Black wins in {self.turn_counter} turns!")
 
         elif result == self.BLACK_KING_CAPTURED:
             # White wins
-            print("White wins!")
+            print(f"White wins in  {self.turn_counter} turns!")
 
         else:
             # If no king is captured, then we have a draw
-            print("Draw!")
+            print(f"Draw after {self.turn_counter} turns!")
 
         print("Thank you for playing!")
         exit(1)
