@@ -381,10 +381,10 @@ class MiniChess:
         - None
     """
     def log_end(self, file, turn, tie, player=None):
-        if tie:
-            file.write(f"{player} won in {turn} turns!\n")
+        if tie == False:
+            file.write(f"\n{player} won in {turn} turns!\n")
         else:
-            file.write(f"Game tied in {turn} turns.\n")
+            file.write(f"\nGame tied in {turn} turns.\n")
         file.close()
 
     """
@@ -399,7 +399,7 @@ class MiniChess:
         print("Welcome to Mini Chess! Enter moves as 'B2 B3'. Type 'exit' to quit.")
   
         # Create output file (add params later)
-        output_file = self.create_game_trace_file("5", "100", "H", "H", False, self.current_game_state, None)
+        output_file = self.create_game_trace_file("5", "100", "H", "H", False, self.current_game_state)
       
         # Play until a king is captured or we have a draw
         drawTimer = 20
@@ -410,8 +410,8 @@ class MiniChess:
             move = input(f"{self.current_game_state['turn'].capitalize()} to move: ")
             if move.lower() == 'exit':
                 print("Game exited.")
-                # add param to log
-                self.log_end(output_file, "1", True, None)
+                # Log game over
+                self.log_end(output_file, self.turn_counter, True)
                 exit(1)
             move_string = move # SAVE BEFORE CONVERSION FOR EASIER PRINTING
             move = self.parse_input(move)
@@ -423,8 +423,10 @@ class MiniChess:
             self.turn_counter+=1
             action_display = f"{current_player} moved from {move_string.split()[0]} to {move_string.split()[1]}"
             print(action_display)
-            # add params to log
-            self.log_action(output_file, "1", "White", move, "H", self.current_game_state, None, None, None)
+
+            # Log action
+            self.log_action(output_file, self.turn_counter - 1, self.current_game_state['turn'], move, "H", self.current_game_state)
+
             self.promotePawn(self.current_game_state) # Check if a pawn reached the other end of the board at the end of this turn, if so, promote it.
             
             # Check if game is moving towards a draw
@@ -446,17 +448,20 @@ class MiniChess:
         if result == self.WHITE_KING_CAPTURED:
             # Black wins
             print(f"Black wins in {self.turn_counter} turns!")
+            # Log game over
+            self.log_end(output_file, self.turn_counter, False, "Black")
 
         elif result == self.BLACK_KING_CAPTURED:
             # White wins
             print(f"White wins in  {self.turn_counter} turns!")
+            # Log game over
+            self.log_end(output_file, self.turn_counter, False, "White")
 
         else:
             # If no king is captured, then we have a draw
             print(f"Draw after {self.turn_counter} turns!")
+            # Log game over
+            self.log_end(output_file, self.turn_counter, True)
 
         print("Thank you for playing!")
         exit(1)
-
-        # Log game is over
-        # self.log_end(output_file, "1", False, "White")
