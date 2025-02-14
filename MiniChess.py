@@ -421,14 +421,15 @@ class MiniChess:
             current_player=self.current_game_state['turn'].capitalize() #SAVE BEFORE MAKING THE MOVE
             self.make_move(self.current_game_state, move)
 
-            if (self.current_game_state['turn'] == "white"):
-                self.turn_counter+=1
-            
             action_display = f"{current_player} moved from {move_string.split()[0]} to {move_string.split()[1]}"
             print(action_display)
 
             # Log action
-            self.log_action(output_file, self.turn_counter - 1, self.current_game_state['turn'], move, "H", self.current_game_state)
+            self.log_action(output_file, self.turn_counter, current_player, move_string.upper(), "H", self.current_game_state)
+            
+            if (self.current_game_state['turn'] == "white"):
+                self.turn_counter+=1
+            
 
             self.promotePawn(self.current_game_state) # Check if a pawn reached the other end of the board at the end of this turn, if so, promote it.
             
