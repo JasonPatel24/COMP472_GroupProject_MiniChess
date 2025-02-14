@@ -13,7 +13,7 @@ Step 1) Clone the repository: git clone https://github.com/COMP472_GroupProject_
 Step 2) Install python (if not yet installed): Ensure you have Python 3.x installed  
 Step 3) Navigate to the project folder: cd COMP472_GroupProject_MiniChess  
 Step 4) Run the game: main.py  
-Step 5) (add this step for parameter setup)  
+Step 5) Set up game parameters (coming soon) 
 
 ## Added Classes:
 - create_game_trace_file, log_action and log_end: these functions create the output file, and log what passes in the game
@@ -25,4 +25,3 @@ Step 5) (add this step for parameter setup)
 - calculatePawnMoves: Returns a list of all the possible moves (in "B2 B3" format) of a pawn depending on its position (row and column in game_state["board"] ).
 - calculateBishopMoves: Returns a list of all the possible moves (in "B2 B3" format) of the Bishop depending on its position (row and column in game_state["board"] ).
 - calculateKnightMoves: Returns a list of all the possible moves (in "B2 B3" format) of the Knight depending on its position (row and column in game_state["board"] ).
-- (add your functions here)
