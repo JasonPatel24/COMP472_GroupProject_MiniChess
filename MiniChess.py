@@ -359,7 +359,7 @@ class MiniChess:
         - None
     """
     def log_action(self, file, turn, player, action, player_type, current_state, time_taken=None, heuristic_score=None, alpha_beta_score=None):
-        file.write(f"Player: {player}, Turn #{turn}, Action: {action}\n")
+        file.write(f"\nPlayer: {player}, Turn #{turn}, Action: {action}\n")
         if player_type == "AI":
             file.write(f"Time for this action: {time_taken:.2f} sec\n")
             file.write(f"Heuristic score: {heuristic_score}\n")
@@ -396,6 +396,7 @@ class MiniChess:
         - None
     """
     def play(self):
+        print()
         print("Welcome to Mini Chess! Enter moves as 'B2 B3'. Type 'exit' to quit.")
   
         # Create output file (add params later)
@@ -422,6 +423,7 @@ class MiniChess:
             self.make_move(self.current_game_state, move)
 
             action_display = f"{current_player} moved from {move_string.split()[0]} to {move_string.split()[1]}"
+            print()
             print(action_display)
 
             # Log action
@@ -449,6 +451,7 @@ class MiniChess:
 
         result = self.isKingCaptured(self.current_game_state)
 
+        print()
         if result == self.WHITE_KING_CAPTURED:
             # Black wins
             print(f"Black wins in {self.turn_counter} turns!")
