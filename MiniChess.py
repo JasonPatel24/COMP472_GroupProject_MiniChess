@@ -456,7 +456,7 @@ class MiniChess:
 
         elif result == self.BLACK_KING_CAPTURED:
             # White wins
-            print(f"White wins in  {self.turn_counter} turns!")
+            print(f"White wins in {self.turn_counter} turns!")
             # Log game over
             self.log_end(output_file, self.turn_counter, False, "White")
 
