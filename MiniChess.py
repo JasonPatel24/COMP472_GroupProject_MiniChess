@@ -420,7 +420,10 @@ class MiniChess:
                 continue
             current_player=self.current_game_state['turn'].capitalize() #SAVE BEFORE MAKING THE MOVE
             self.make_move(self.current_game_state, move)
-            self.turn_counter+=1
+
+            if (self.current_game_state['turn'] == "white"):
+                self.turn_counter+=1
+            
             action_display = f"{current_player} moved from {move_string.split()[0]} to {move_string.split()[1]}"
             print(action_display)
 
