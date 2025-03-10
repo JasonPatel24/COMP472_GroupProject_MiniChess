@@ -295,6 +295,48 @@ class MiniChess:
 
         return game_state
 
+    # TODO: Develop and test heurisitic function e(n), which approximates the odds of White winning over Black
+    def calculate_heuristic(self, board_state):
+        e = 0
+
+        # Current heursitic used for D2 is e_0 (see project spec)
+        for row in range(0, len(board_state)):
+            for col in range(0, len(board_state[row])):
+
+                # e > 0: White has the advantage
+                # e = 0: Game is in a neutral state
+                # e < 0: Black has the advantage
+                # Depending on the importance of the piece, their presence (or lack thereof) affects the odds for their respective side (pawns are worth 1, bishops and knights 3, etc.)
+                if board_state[row][col] == "wp":
+                    e += 1
+
+                elif board_state[row][col] == "wB" or board_state[row][col] == "wN":
+                    e += 3
+
+                elif board_state[row][col] == "wQ":
+                    e += 9
+
+                elif board_state[row][col] == "wK":
+                    e += 999
+                    
+                elif board_state[row][col] == "bp":
+                    e -= 1
+
+                elif board_state[row][col] == "bB" or board_state[row][col] == "bN":
+                    e -= 3
+
+                elif board_state[row][col] == "bQ":
+                    e -= 9
+
+                elif board_state[row][col] == "bK":
+                    e -= 999
+
+                else:
+                    continue
+
+        return e
+
+
     """
     Parse the input string and modify it into board coordinates
 
@@ -406,6 +448,12 @@ class MiniChess:
         drawTimer = 20
         while self.isKingCaptured(self.current_game_state) == "" and drawTimer > 0:
             self.display_board(self.current_game_state)
+
+            # TODO: Remove these lines before submitting
+            print()
+            print("Current e(n): White advantage over Black:")
+            print(self.calculate_heuristic(self.current_game_state["board"]))
+
             valid_moves = self.valid_moves(self.current_game_state)
             print(f"Valid moves for {self.current_game_state['turn']}: {valid_moves}")  # Print all valid moves
             move = input(f"{self.current_game_state['turn'].capitalize()} to move: ")
