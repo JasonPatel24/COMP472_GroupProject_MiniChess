@@ -3,6 +3,23 @@ import copy
 import time
 import argparse
 import os
+import copy
+
+# Basis for the tree needed to play minimax
+class Node:
+    def __init__(self):
+        self.board_state = []
+        self.heuristic = 0
+        self.children = []
+
+    def __init__(self, board, heurisitic, children):
+        self.board_state = board
+        self.heuristic = heurisitic
+        self.children = children
+
+    def addChild(self, child):
+        self.children.append(child)
+
 
 class MiniChess:
     WHITE_KING_CAPTURED = 'wkc'
@@ -96,7 +113,7 @@ class MiniChess:
                     moves+=self.calculateKnightMoves(game_state,row,column)
                 if 'p' in piece and piece.startswith(turn[0]):  #PAWN
                     moves+=self.calculatePawnMoves(game_state,row,column)
-        return moves
+        return moves    
     
     def calculateKingMoves(self, game_state, row, column):
         # The King moves 1 square in any direction.
@@ -295,11 +312,40 @@ class MiniChess:
 
         return game_state
 
-    # TODO: Develop and test heurisitic function e(n), which approximates the odds of White winning over Black
+    # AI simulates all possible game states up after a number of moves equal to 'max_depth'. 
+    def AI_play(self, game_state, current_level, max_depth):
+        # White is max
+        # Black is min
+
+        # Create node given board state
+
+        if (current_level == max_depth):
+            # Node gets a heuristic
+            e = self.calculate_heuristic(game_state["board"])
+            board = copy.deepcopy(game_state["board"])
+            return Node(board, e, [])
+
+        else:
+            # Node does not get a heuristic (will be calculated later during minimax)
+            e = 0
+            board = copy.deepcopy(game_state["board"])
+            current_node = Node(board, e, [])
+            
+            # Add a node for each valid_move from this board_state
+            for move in self.valid_moves(game_state):
+                current_state = copy.deepcopy(game_state)
+                new_state = self.make_move(current_state, self.parse_input(move))
+                next_level = current_level + 1
+                current_node.addChild(self.AI_play(new_state, next_level, max_depth))
+            
+            return current_node
+
+
+    # Heuristic function e(n), which approximates the odds of White winning over Black
     def calculate_heuristic(self, board_state):
         e = 0
 
-        # Current heursitic used for D2 is e_0 (see project spec)
+        # Current heurstic used for D2 is e_0 (see project spec)
         for row in range(0, len(board_state)):
             for col in range(0, len(board_state[row])):
 
@@ -428,6 +474,10 @@ class MiniChess:
         else:
             file.write(f"\nGame tied in {turn} turns.\n")
         file.close()
+
+    # TODO: Remove function when done testing
+    def testAIPlay(self):
+        return self.AI_play(self.current_game_state, 0, 3)
 
     """
     Game loop
