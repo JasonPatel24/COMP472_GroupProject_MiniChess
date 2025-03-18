@@ -7,19 +7,18 @@ import copy
 
 # Basis for the tree needed to play minimax
 class Node:
-    def __init__(self):
-        self.parent = Node() #Parent Node of the current node, necessary for tracing back once the tree is built
-        self.board_state = []
-        self.heuristic = 0
-        self.children = []
-
-    def __init__(self, board, heurisitic, children):
-        self.board_state = board
+    def __init__(self, board=None, heurisitic=None, children=None, parent=None):
+        self.board_state = board if board is not None else []
         self.heuristic = heurisitic
-        self.children = children
+        self.children = children if children is not None else []
+        self.parent = parent
+        
 
     def addChild(self, child):
         self.children.append(child)
+
+    def setParent(self, parent):
+        self.parent = parent
 
 
 class MiniChess:
@@ -27,6 +26,7 @@ class MiniChess:
     BLACK_KING_CAPTURED = 'bkc'
     num_pieces = 12
     turn_counter = 1
+    MAX_DEPTH = 3
 
     def __init__(self):
         self.current_game_state = self.init_board()
@@ -313,22 +313,17 @@ class MiniChess:
 
         return game_state
 
-    # AI simulates all possible game states up after a number of moves equal to 'max_depth'. 
-    def AI_play(self, game_state, current_level, max_depth):
-        # White is max
-        # Black is min
-
+    # Function to create the decision tree with all the game state nodes, setting children and parent
+    def AI_play(self, game_state, current_level):
         # Create node given board state
-
-        if (current_level == max_depth):
+        if (current_level == self.max_depth):
             # Node gets a heuristic
             e = self.calculate_heuristic(game_state["board"])
             board = copy.deepcopy(game_state["board"])
             return Node(board, e, [])
-
         else:
             # Node does not get a heuristic (will be calculated later during minimax)
-            e = 0
+            e = None
             board = copy.deepcopy(game_state["board"])
             current_node = Node(board, e, [])
             
@@ -337,14 +332,18 @@ class MiniChess:
                 current_state = copy.deepcopy(game_state)
                 new_state = self.make_move(current_state, self.parse_input(move))
                 next_level = current_level + 1
-                current_node.addChild(self.AI_play(new_state, next_level, max_depth))
-            
+                child_node = self.AI_play(new_state, next_level)
+                child_node.setParent(current_node)     
+                current_node.addChild(child_node) 
             return current_node
         
+
     
-    def alphabeta(self, node, depth, alpha, beta, maximizingPlayer):  #Depth is the same as maxdepth
+    def alphabeta(self, node, depth, alpha, beta, maximizingPlayer):  #Depth is the same as maxdepth initially
         if depth == 0 or not node.children:  #Terminal node (reached max depth or no more children)
-            return node.value
+            return node.heuristic, node       
+        # White is max
+        # Black is min
         if maximizingPlayer:
             v = -math.inf
             for child in node.children:
@@ -498,7 +497,7 @@ class MiniChess:
 
     # TODO: Remove function when done testing
     def testAIPlay(self):
-        return self.AI_play(self.current_game_state, 0, 3)
+        return self.AI_play(self.current_game_state, 0, self.MAX_DEPTH)
 
     """
     Game loop
