@@ -8,6 +8,7 @@ import copy
 # Basis for the tree needed to play minimax
 class Node:
     def __init__(self):
+        #self.parent = Node() ADD PARENT NODE LATER
         self.board_state = []
         self.heuristic = 0
         self.children = []
@@ -339,6 +340,27 @@ class MiniChess:
                 current_node.addChild(self.AI_play(new_state, next_level, max_depth))
             
             return current_node
+        
+    
+    def alphabeta(self, node, depth, alpha, beta, maximizingPlayer):  #Depth is the same as maxdepth
+        if depth == 0 or not node.children:  #Terminal node (reached max depth or no more children)
+            return node.value
+        if maximizingPlayer:
+            v = -math.inf
+            for child in node.children:
+                v = max(v, self.alphabeta(child, depth - 1, alpha, beta, False))
+                alpha = max(alpha, v)
+                if beta <= alpha:
+                    break
+            return v
+        else:
+            v = math.inf
+            for child in node.children:
+                v = min(v, self.alphabeta(child, depth - 1, alpha, beta, True))
+                beta = min(beta, v)
+                if beta <= alpha:
+                    break
+            return v
 
 
     # Heuristic function e(n), which approximates the odds of White winning over Black
@@ -381,7 +403,6 @@ class MiniChess:
                     continue
 
         return e
-
 
     """
     Parse the input string and modify it into board coordinates
