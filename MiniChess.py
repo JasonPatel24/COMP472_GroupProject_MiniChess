@@ -26,7 +26,18 @@ class MiniChess:
     BLACK_KING_CAPTURED = 'bkc'
     num_pieces = 12
     turn_counter = 1
-    MAX_DEPTH = 3
+
+    #Change these values to get best results
+    MAX_DEPTH = 4 #Set to twice as much when alpha-beta is enabled
+    MINIMAX_TIMEOUT_MULTIPLIER = 0.9 #Stop searching for a move after 90% of AI_TIMEOUT
+
+    # Game parameters (set by user when game starts)
+    MAX_TURNS = 0 #game ends after 100 turns
+    ALPHA_BETA = False #set to false if we want to use simple minimax
+    PLAYER_WHITE = "H"
+    PLAYER_BLACK = "H"
+    AI_TIMEOUT = 0 #AI must find a move in 5 seconds
+
 
     def __init__(self):
         self.current_game_state = self.init_board()
@@ -192,10 +203,13 @@ class MiniChess:
             #Simple move with no pieces in the way
             possibleMoves.append(columnLetters[column] + str(5-row) + " " + columnLetters[column] + str(5-row-direction))
         #Check if the pawn can capture, in which case it may move diagonally
-        if board[row+direction][column+1]!='.' and board[row+direction][column+1][0]!=game_state["turn"][0]:
-            possibleMoves.append(columnLetters[column] + str(5-row) + " " + columnLetters[column+1] + str(5-row-direction))
-        if board[row+direction][column-1]!='.' and board[row+direction][column-1][0]!=game_state["turn"][0]:
-            possibleMoves.append(columnLetters[column] + str(5-row) + " " + columnLetters[column-1] + str(5-row-direction))
+        if 0 <= row+direction < 5 and 0 <= column+1 < 5:  # Check boundaries
+            if board[row+direction][column+1]!='.' and board[row+direction][column+1][0]!=game_state["turn"][0]:
+                possibleMoves.append(columnLetters[column] + str(5-row) + " " + columnLetters[column+1] + str(5-row-direction))
+
+        if 0 <= row+direction < 5 and 0 <= column-1 < 5:  # Check boundaries
+            if board[row+direction][column-1]!='.' and board[row+direction][column-1][0]!=game_state["turn"][0]:
+                possibleMoves.append(columnLetters[column] + str(5-row) + " " + columnLetters[column-1] + str(5-row-direction))
         return possibleMoves
     
     def calculateBishopMoves(self, game_state, row, column):
@@ -314,9 +328,9 @@ class MiniChess:
         return game_state
 
     # Function to create the decision tree with all the game state nodes, setting children and parent
-    def AI_play(self, game_state, current_level):
+    def build_decision_tree(self, game_state, current_level, start_time):
         # Create node given board state
-        if (current_level == self.max_depth):
+        if (current_level == self.MAX_DEPTH) or (time.time() - start_time >= self.AI_TIMEOUT*self.MINIMAX_TIMEOUT_MULTIPLIER):  # Terminal node
             # Node gets a heuristic
             e = self.calculate_heuristic(game_state["board"])
             board = copy.deepcopy(game_state["board"])
@@ -332,21 +346,49 @@ class MiniChess:
                 current_state = copy.deepcopy(game_state)
                 new_state = self.make_move(current_state, self.parse_input(move))
                 next_level = current_level + 1
-                child_node = self.AI_play(new_state, next_level)
+                child_node = self.build_decision_tree(new_state, next_level,start_time)
                 child_node.setParent(current_node)     
                 current_node.addChild(child_node) 
             return current_node
         
+    def minimax(self, node, depth, maximizingPlayer, start_time):   
+        # Sometimes the heuristic is not calculated, so we calculate it here to avoid errors
+        if node.heuristic is None:
+            node.heuristic = self.calculate_heuristic(node.board_state)
+
+        if depth == 0 or not node.children:  #Terminal node (reached max depth or no more children)
+            return node.heuristic, node #return the heuristic of the node aswell as the node to make the move
+        
+        if maximizingPlayer: #White is max
+            #find the child node with the highest heuristic
+            maxEval = -math.inf
+            bestChild = None
+            for child in node.children:
+                eval = self.minimax(child, depth - 1, False, start_time)
+                if eval[0] > maxEval:
+                    maxEval = eval[0]
+                    bestChild = child
+            return maxEval, bestChild
+        else: #Black is min
+            #Find the child node with the lowest heuristic
+            minEval = math.inf
+            bestChild = None
+            for child in node.children:
+                eval = self.minimax(child, depth - 1, True, start_time)
+                if eval[0] < minEval:
+                    minEval = eval[0]
+                    bestChild = child
+            return minEval, bestChild
 
     
-    def alphabeta(self, node, depth, alpha, beta, maximizingPlayer):  #Depth is the same as maxdepth initially
-        if depth == 0 or not node.children:  #Terminal node (reached max depth or no more children)
-            return node.heuristic, node       
+    def alphabeta(self, origin_node, depth, alpha, beta, maximizingPlayer):  #Depth is the same as maxdepth initially
+        if depth == 0 or not origin_node.children:  #Terminal node (reached max depth or no more children)
+            return origin_node.heuristic, origin_node       
         # White is max
         # Black is min
         if maximizingPlayer:
             v = -math.inf
-            for child in node.children:
+            for child in origin_node.children:
                 v = max(v, self.alphabeta(child, depth - 1, alpha, beta, False))
                 alpha = max(alpha, v)
                 if beta <= alpha:
@@ -354,7 +396,7 @@ class MiniChess:
             return v
         else:
             v = math.inf
-            for child in node.children:
+            for child in origin_node.children:
                 v = min(v, self.alphabeta(child, depth - 1, alpha, beta, True))
                 beta = min(beta, v)
                 if beta <= alpha:
@@ -497,7 +539,7 @@ class MiniChess:
 
     # TODO: Remove function when done testing
     def testAIPlay(self):
-        return self.AI_play(self.current_game_state, 0, self.MAX_DEPTH)
+        return self.build_decision_tree(self.current_game_state, 0, self.MAX_DEPTH)
 
     """
     Game loop
@@ -509,84 +551,116 @@ class MiniChess:
     """
     def play(self):
         print()
-        print("Welcome to Mini Chess! Enter moves as 'B2 B3'. Type 'exit' to quit.")
-  
-        # Create output file (add params later)
-        output_file = self.create_game_trace_file("5", "100", "H", "H", False, self.current_game_state)
-      
+        self.user_game_parameters() # Get user input for game parameters
+        # Create output file with parameters
+        output_file = self.create_game_trace_file(self.AI_TIMEOUT, self.MAX_TURNS, self.PLAYER_WHITE, self.PLAYER_BLACK, self.ALPHA_BETA, self.current_game_state)
+
         # Play until a king is captured or we have a draw
         drawTimer = 20
-        while self.isKingCaptured(self.current_game_state) == "" and drawTimer > 0:
+        while self.isKingCaptured(self.current_game_state) == "" and drawTimer > 0 and self.turn_counter <= self.MAX_TURNS:
             self.display_board(self.current_game_state)
-
+            current_player=self.current_game_state['turn'].capitalize()
             # TODO: Remove these lines before submitting
             print()
-            print("Current e(n): White advantage over Black:")
-            print(self.calculate_heuristic(self.current_game_state["board"]))
+            print(f"Current e(n): White advantage over Black: {self.calculate_heuristic(self.current_game_state['board'])}")
 
-            valid_moves = self.valid_moves(self.current_game_state)
-            print(f"Valid moves for {self.current_game_state['turn']}: {valid_moves}")  # Print all valid moves
-            move = input(f"{self.current_game_state['turn'].capitalize()} to move: ")
-            if move.lower() == 'exit':
-                print("Game exited.")
-                # Log game over
-                self.log_end(output_file, self.turn_counter, True)
-                exit(1)
-            move_string = move # SAVE BEFORE CONVERSION FOR EASIER PRINTING
-            move = self.parse_input(move)
-            if not move or not self.is_valid_move(self.current_game_state, move):
-                print("Invalid move. Try again.")
-                continue
-            current_player=self.current_game_state['turn'].capitalize() #SAVE BEFORE MAKING THE MOVE
-            self.make_move(self.current_game_state, move)
+            # Human plays
+            if (self.current_game_state["turn"] == "white" and self.PLAYER_WHITE == "H") or (self.current_game_state["turn"] == "black" and self.PLAYER_BLACK == "H"):
+                print("Enter moves as 'B2 B3'. Type 'exit' to quit.")
+                move = input(f"{self.current_game_state['turn'].capitalize()} to move: ")
+                if move.lower() == 'exit':
+                    print("Game exited.")
+                    # Log game over
+                    self.log_end(output_file, self.turn_counter, True)
+                    exit(1)
+                move_string = move # SAVE BEFORE CONVERSION FOR EASIER PRINTING
+                move = self.parse_input(move)
+                if not move or not self.is_valid_move(self.current_game_state, move):
+                    print("Invalid move. Try again.")
+                    continue
+                self.make_move(self.current_game_state, move)
 
+            # AI plays
+            elif (self.current_game_state["turn"] == "white" and self.PLAYER_WHITE == "A") or (self.current_game_state["turn"] == "black" and self.PLAYER_BLACK == "A"):
+                print("Wait for AI to make a move...")
+                start_time = time.time()
+                # Run minimax or alphabeta
+                if self.ALPHA_BETA:
+                    best_score = self.alphabeta(decision_tree, self.MAX_DEPTH, -math.inf, math.inf, self.current_game_state["turn"] == "white")
+                else:
+                    # Create the decision tree and run minimax
+                    decision_tree = self.build_decision_tree(self.current_game_state, 0,start_time)
+                    best_score = self.minimax(decision_tree, self.MAX_DEPTH, self.current_game_state["turn"] == "white",start_time)
+                # Get the best child node
+                best_child = best_score[1]
+                # Get the move that led to the best child node
+                move = None
+                for i in range(0, len(decision_tree.children)):               
+                    if decision_tree.children[i] == best_child:
+                        move = self.valid_moves(self.current_game_state)[i]
+                        break
+                # Make the move
+                move_string = move  # Save string representation of the move
+                heuristic_score = best_child.heuristic
+                self.make_move(self.current_game_state, self.parse_input(move))
+                time_taken = time.time() - start_time # Calculate time taken for AI move
+                print(f"Time taken for AI move: {time_taken:.2f} sec")
+                print(f"Heuristic score of adversarial search: {heuristic_score}")
+
+            #POST TURN ACTIONS
             action_display = f"{current_player} moved from {move_string.split()[0]} to {move_string.split()[1]}"
             print()
             print(action_display)
-
             # Log action
             self.log_action(output_file, self.turn_counter, current_player, move_string.upper(), "H", self.current_game_state)
-            
             if (self.current_game_state['turn'] == "white"):
                 self.turn_counter+=1
-            
-
             self.promotePawn(self.current_game_state) # Check if a pawn reached the other end of the board at the end of this turn, if so, promote it.
-            
             # Check if game is moving towards a draw
             new_num_pieces = self.checkNumberOfPieces(self.current_game_state)
             if (self.num_pieces > new_num_pieces):
                 # A piece has been captured
                 drawTimer = 20
                 self.num_pieces = new_num_pieces
-
             else:
                 # No pieces have been captured this turn
                 drawTimer -= 1
-
         # If game has ended, check which king is captured
         self.display_board(self.current_game_state)
-
         result = self.isKingCaptured(self.current_game_state)
-
         print()
         if result == self.WHITE_KING_CAPTURED:
             # Black wins
             print(f"Black wins in {self.turn_counter} turns!")
             # Log game over
             self.log_end(output_file, self.turn_counter, False, "Black")
-
         elif result == self.BLACK_KING_CAPTURED:
             # White wins
             print(f"White wins in {self.turn_counter} turns!")
             # Log game over
             self.log_end(output_file, self.turn_counter, False, "White")
-
         else:
             # If no king is captured, then we have a draw
             print(f"Draw after {self.turn_counter} turns!")
             # Log game over
             self.log_end(output_file, self.turn_counter, True)
 
+        #GAME ENDS HERE
         print("Thank you for playing!")
         exit(1)
+
+
+    def user_game_parameters(self):
+        print("Welcome to Mini Chess! Type 'exit' to quit.")
+        print("---Game Settings---")
+        self.PLAYER_WHITE = input("Player 1 - WHITE: Human (H) or AI (A)? ").upper()
+        self.PLAYER_BLACK = input("Player 2 - BLACK: Human (H) or AI (A)? ").upper()
+        self.MAX_TURNS = int(input("Max turns before draw: "))
+        if self.PLAYER_WHITE == "A" or self.PLAYER_BLACK == "A":
+            self.AI_TIMEOUT = float(input("Timeout for AI moves (in seconds): "))
+            alpha_beta = input("Use Alpha-Beta pruning? (Y/N) ").upper()
+            if alpha_beta == "Y":
+                self.ALPHA_BETA = True
+                self.MAX_DEPTH = self.MAX_DEPTH*2  # Deeper search with alpha-beta
+            else:
+                self.ALPHA_BETA = False
