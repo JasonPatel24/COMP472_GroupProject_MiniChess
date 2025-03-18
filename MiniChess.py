@@ -8,7 +8,7 @@ import copy
 # Basis for the tree needed to play minimax
 class Node:
     def __init__(self):
-        #self.parent = Node() ADD PARENT NODE LATER
+        self.parent = Node() #Parent Node of the current node, necessary for tracing back once the tree is built
         self.board_state = []
         self.heuristic = 0
         self.children = []
