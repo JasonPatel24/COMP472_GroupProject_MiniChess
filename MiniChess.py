@@ -27,6 +27,10 @@ class MiniChess:
     num_pieces = 12
     turn_counter = 1
     MAX_DEPTH = 3
+    TIMEOUT = 5 # 5 seconds
+    MAX_TURNS = 100 #game ends after 100 turns
+    ALPHABETA = False #set to false if we want to use simple minimax
+
 
     def __init__(self):
         self.current_game_state = self.init_board()
@@ -316,7 +320,7 @@ class MiniChess:
     # Function to create the decision tree with all the game state nodes, setting children and parent
     def AI_play(self, game_state, current_level):
         # Create node given board state
-        if (current_level == self.max_depth):
+        if (current_level == self.MAX_DEPTH):
             # Node gets a heuristic
             e = self.calculate_heuristic(game_state["board"])
             board = copy.deepcopy(game_state["board"])
@@ -337,6 +341,29 @@ class MiniChess:
                 current_node.addChild(child_node) 
             return current_node
         
+    def minimax(self, node, depth, maximizingPlayer):
+        if depth == 0 or not node.children:  #Terminal node (reached max depth or no more children)
+            return node.heuristic, node #return the heuristic of the node aswell as the node to make the move
+        if maximizingPlayer: #White is max
+            #From al the children, find the one with the highest heuristic
+            maxEval = -math.inf
+            bestChild = None
+            for child in node.children:
+                eval = self.minimax(child, depth - 1, False)
+                if eval > maxEval:
+                    maxEval = eval
+                    bestChild = child
+            return maxEval,bestChild
+        else: #Black is min
+            #From al the children, find the one with the lowest heuristic
+            minEval = math.inf
+            bestChild = None
+            for child in node.children:
+                eval = self.minimax(child, depth - 1, True)
+                if eval < minEval:
+                    minEval = eval
+                    bestChild = child
+            return minEval,bestChild
 
     
     def alphabeta(self, node, depth, alpha, beta, maximizingPlayer):  #Depth is the same as maxdepth initially
