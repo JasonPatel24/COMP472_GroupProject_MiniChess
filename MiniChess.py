@@ -41,6 +41,11 @@ class MiniChess:
 
     def __init__(self):
         self.current_game_state = self.init_board()
+        # AI cumulative info
+        self.total_states_explored = 0
+        self.states_by_depth = {0: 0, 1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0, 7: 0, 8: 0, 9: 0}
+        self.total_branches = 0
+        self.total_branch_nodes = 0
 
     """
     Initialize the board
@@ -329,6 +334,12 @@ class MiniChess:
 
     # Function to create the decision tree with all the game state nodes, setting children and parent
     def build_decision_tree(self, game_state, current_level, start_time):
+        self.total_states_explored += 1
+        if current_level in self.states_by_depth:
+            self.states_by_depth[current_level] += 1
+        else:
+            self.states_by_depth[current_level] = 1
+
         # Create node given board state
         if (current_level == self.MAX_DEPTH) or (time.time() - start_time >= self.AI_TIMEOUT*self.MINIMAX_TIMEOUT_MULTIPLIER):  # Terminal node
             # Node gets a heuristic
@@ -340,6 +351,12 @@ class MiniChess:
             e = None
             board = copy.deepcopy(game_state["board"])
             current_node = Node(board, e, [])
+            # Get valid moves and track branching factor
+            valid_moves = self.valid_moves(game_state)
+            #Branching factor
+            if valid_moves:  # Only track non-leaf nodes
+                self.total_branches += len(valid_moves)
+                self.total_branch_nodes += 1
             
             # Add a node for each valid_move from this board_state
             for move in self.valid_moves(game_state):
@@ -606,6 +623,7 @@ class MiniChess:
                 time_taken = time.time() - start_time # Calculate time taken for AI move
                 print(f"Time taken for AI move: {time_taken:.2f} sec")
                 print(f"Heuristic score of adversarial search: {heuristic_score}")
+                self.print_AI_info()  # Print cumulative AI info
 
             #POST TURN ACTIONS
             action_display = f"{current_player} moved from {move_string.split()[0]} to {move_string.split()[1]}"
@@ -664,3 +682,33 @@ class MiniChess:
                 self.MAX_DEPTH = self.MAX_DEPTH*2  # Deeper search with alpha-beta
             else:
                 self.ALPHA_BETA = False
+
+    def print_AI_info(self):
+        print("=== AI Cumulative Information ===")
+        # Format and display statistics
+        print(f"Cumulative states explored: {self.format_number(self.total_states_explored)}")
+        # Stats by depth
+        depth_stats = ""
+        depth_percentages = ""
+        total = self.total_states_explored
+        for depth, count in sorted({d:c for d,c in self.states_by_depth.items() if c > 0}.items()):
+            depth_stats += f"{depth}={self.format_number(count)} "
+            percentage = (count / total * 100) if total > 0 else 0
+            if percentage >= 0.1:  # Only show depths with significant percentage
+                depth_percentages += f"{depth}={percentage:.1f}% "
+
+        print(f"Cumulative states explored by depth: {depth_stats}")
+        print(f"Cumulative % states explored by depth: {depth_percentages}")
+
+        # Calculate average branching factor
+        avg_branching = self.total_branches / self.total_branch_nodes if self.total_branch_nodes > 0 else 0
+        print(f"Average branching factor: {avg_branching:.1f}")
+
+    # Helper method for number formatting
+    def format_number(self, num):
+        if num >= 1000000:
+            return f"{num/1000000:.1f}M"
+        elif num >= 1000:
+            return f"{num/1000:.1f}k"
+        else:
+            return str(num)
