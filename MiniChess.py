@@ -399,26 +399,39 @@ class MiniChess:
 
     
     def alphabeta(self, origin_node, depth, alpha, beta, maximizingPlayer):  #Depth is the same as maxdepth initially
+        # Sometimes the heuristic is not calculated, so we calculate it here to avoid errors
+        if origin_node.heuristic is None:
+            origin_node.heuristic = self.calculate_heuristic(origin_node.board_state)
+
         if depth == 0 or not origin_node.children:  #Terminal node (reached max depth or no more children)
-            return origin_node.heuristic, origin_node       
+            return origin_node.heuristic, origin_node    
+           
         # White is max
         # Black is min
         if maximizingPlayer:
             v = -math.inf
+            best_node = None
             for child in origin_node.children:
-                v = max(v, self.alphabeta(child, depth - 1, alpha, beta, False))
+                child_value, _ = self.alphabeta(child, depth - 1, alpha, beta, False)
+                if child_value > v:
+                    v = child_value
+                    best_node = child
                 alpha = max(alpha, v)
-                if beta <= alpha:
+                if beta <= alpha: #Prune
                     break
-            return v
+            return v, best_node  # Return both the best value and the corresponding node
         else:
             v = math.inf
+            best_node = None
             for child in origin_node.children:
-                v = min(v, self.alphabeta(child, depth - 1, alpha, beta, True))
+                child_value, _ = self.alphabeta(child, depth - 1, alpha, beta, True)
+                if child_value < v:
+                    v = child_value
+                    best_node = child
                 beta = min(beta, v)
-                if beta <= alpha:
+                if beta <= alpha: #Prune
                     break
-            return v
+            return v, best_node  # Return both the best value and the corresponding node
 
 
     # Heuristic function e(n), which approximates the odds of White winning over Black
@@ -603,6 +616,8 @@ class MiniChess:
                 start_time = time.time()
                 # Run minimax or alphabeta
                 if self.ALPHA_BETA:
+                    # Create the decision tree and run alphabeta
+                    decision_tree = self.build_decision_tree(self.current_game_state, 0, start_time)
                     best_score = self.alphabeta(decision_tree, self.MAX_DEPTH, -math.inf, math.inf, self.current_game_state["turn"] == "white")
                 else:
                     # Create the decision tree and run minimax
