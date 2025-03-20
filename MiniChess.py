@@ -621,7 +621,7 @@ class MiniChess:
             # Human plays
             if (self.current_game_state["turn"] == "white" and self.PLAYER_WHITE == "H") or (self.current_game_state["turn"] == "black" and self.PLAYER_BLACK == "H"):
                 print("Enter moves as 'B2 B3'. Type 'exit' to quit.")
-                move = input(f"{self.current_game_state['turn'].capitalize()} to move: ")
+                move = input(f"{self.current_game_state['turn'].capitalize()} to move: ").strip()
                 if move.lower() == 'exit':
                     print("Game exited.")
                     # Log game over
@@ -712,12 +712,44 @@ class MiniChess:
     def user_game_parameters(self):
         print("Welcome to Mini Chess! Type 'exit' to quit.")
         print("---Game Settings---")
-        self.PLAYER_WHITE = input("Player 1 - WHITE: Human (H) or AI (A)? ").upper()
-        self.PLAYER_BLACK = input("Player 2 - BLACK: Human (H) or AI (A)? ").upper()
-        self.MAX_TURNS = int(input("Max turns before draw: "))
+        while True:
+            self.PLAYER_WHITE = input("Player 1 - WHITE: Human (H) or AI (A)? ").strip().upper()
+            if self.PLAYER_WHITE in {"H", "A"}:
+                break
+            print("Invalid input. Please enter 'H' for Human or 'A' for AI.")
+
+        while True:
+            self.PLAYER_BLACK = input("Player 2 - BLACK: Human (H) or AI (A)? ").strip().upper()
+            if self.PLAYER_BLACK in {"H", "A"}:
+                break
+            print("Invalid input. Please enter 'H' for Human or 'A' for AI.")
+
+        while True:
+            user_input = input("Max turns before draw: ").strip()
+            if user_input.isdigit() and int(user_input) > 0:
+                self.MAX_TURNS = int(user_input)  # Convert to integer after validation
+                break
+            print("Invalid input. Please enter a positive integer.")
+
         if self.PLAYER_WHITE == "A" or self.PLAYER_BLACK == "A":
-            self.AI_TIMEOUT = float(input("Timeout for AI moves (in seconds): "))
-            alpha_beta = input("Use Alpha-Beta pruning? (Y/N) ").upper()
+            while True:
+                user_input = input("Timeout for AI moves (in seconds): ").strip()
+                try:
+                    user_value = float(user_input)  # Try converting input to float
+                    if user_value >= 0:  # Ensure it's positive
+                        self.AI_TIMEOUT = user_value
+                        break
+                    else:
+                        print("Invalid input. Please enter a positive number.")
+                except ValueError:
+                    print("Invalid input. Please enter a valid positive number.")
+
+            while True:
+                alpha_beta = input("Use Alpha-Beta pruning? (Y/N) ").strip().upper()
+                if alpha_beta in {"Y", "N"}:
+                    break
+                print("Invalid input. Please enter 'Y' for Alpha-Beta or 'N' for Min-Max.")
+
             if alpha_beta == "Y":
                 self.ALPHA_BETA = True
                 self.MAX_DEPTH = self.MAX_DEPTH*2  # Deeper search with alpha-beta
