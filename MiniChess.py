@@ -591,6 +591,17 @@ class MiniChess:
             file.write(f"\nGame tied in {turn} turns.\n")
         file.close()
 
+    """
+    Log human errors to output file
+
+    Args:
+        - parameters being used
+    Returns:
+        - None
+    """
+    def log_error(self, file, turn, player, action):
+        file.write(f"\nInvalid input: {player} tried to enter {action} on turn {turn}.\n")
+
     # TODO: Remove function when done testing
     def testAIPlay(self):
         return self.build_decision_tree(self.current_game_state, 0, self.MAX_DEPTH)
@@ -631,6 +642,7 @@ class MiniChess:
                 move = self.parse_input(move)
                 if not move or not self.is_valid_move(self.current_game_state, move):
                     print("Invalid move. Try again.")
+                    self.log_error(output_file, self.turn_counter, current_player, move_string)
                     continue
                 self.make_move(self.current_game_state, move)
 
