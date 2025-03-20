@@ -511,9 +511,9 @@ class MiniChess:
         file.write("=== Game Parameters ===\n")
         file.write(f"Timeout: {timeout} seconds\n")
         file.write(f"Max turns: {max_turns}\n")
-        file.write(f"Player 1: {player_1_type} & Player 2: {player_2_type}\n")
+        file.write(f"Player 1 type: {player_1_type} & Player 2 type: {player_2_type}\n")
         # AI parameters
-        if player_1_type == "AI" or player_2_type == "AI":
+        if player_1_type == "A" or player_2_type == "A":
             file.write(f"Alpha-Beta: {'ON' if alpha_beta else 'OFF'}\n")
             file.write(f"Heuristic used: {heuristic}\n")
 
@@ -524,7 +524,7 @@ class MiniChess:
         file.write("    A   B   C   D   E\n")
         
         # Game trace
-        file.write("\n=== Game Trace ===\n")
+        file.write("\n\n=== Game Trace ===\n")
 
         return file
     
@@ -535,22 +535,46 @@ class MiniChess:
         - File
         - Action information
         - New state
+        - AI info
     Returns:
         - None
     """
-    def log_action(self, file, turn, player, action, player_type, current_state, time_taken=None, heuristic_score=None, alpha_beta_score=None):
-        file.write(f"\nPlayer: {player}, Turn #{turn}, Action: {action}\n")
-        if player_type == "AI":
+    def log_action(self, file, turn, player, action, player_type, current_state, time_taken=None, heuristic_score=None, alpha_beta=False, method_score=None):
+        file.write(f"\n\nPlayer: {player}, Turn #{turn}, Action: {action}\n")
+        if player_type == "A":
             file.write(f"Time for this action: {time_taken:.2f} sec\n")
             file.write(f"Heuristic score: {heuristic_score}\n")
-            file.write(f"Alpha-Beta search score: {alpha_beta_score}\n")
+            if (alpha_beta):
+                file.write(f"Alpha-Beta search score: {method_score}\n")
+            else:
+                file.write(f"Min-Max search score: {method_score}\n")
 
-        file.write("=== New Board Configuration ===\n")
+        file.write("\n=== New Board Configuration ===\n")
         for i, row in enumerate(current_state["board"], start=1):
             file.write(f"{6-i} {' '.join(piece.rjust(3) for piece in row)}\n")
         file.write("    A   B   C   D   E\n")
 
-        # add cumulative ai info here once needed
+        # Ai cumulative info
+        if player_type == "A":
+            file.write("\n=== AI Cumulative Information ===\n")
+            # Format and display statistics
+            file.write(f"Cumulative states explored: {self.format_number(self.total_states_explored)}\n")
+            # Stats by depth
+            depth_stats = ""
+            depth_percentages = ""
+            total = self.total_states_explored
+            for depth, count in sorted({d:c for d,c in self.states_by_depth.items() if c > 0}.items()):
+                depth_stats += f"{depth}={self.format_number(count)} "
+                percentage = (count / total * 100) if total > 0 else 0
+                if percentage >= 0.1:  # Only show depths with significant percentage
+                    depth_percentages += f"{depth}={percentage:.1f}% "
+
+            file.write(f"Cumulative states explored by depth: {depth_stats}\n")
+            file.write(f"Cumulative % states explored by depth: {depth_percentages}\n")
+
+            # Calculate average branching factor
+            avg_branching = self.total_branches / self.total_branch_nodes if self.total_branch_nodes > 0 else 0
+            file.write(f"Average branching factor: {avg_branching:.1f}\n")
     
     """
     Log game over to output file
@@ -583,7 +607,7 @@ class MiniChess:
         print()
         self.user_game_parameters() # Get user input for game parameters
         # Create output file with parameters
-        output_file = self.create_game_trace_file(self.AI_TIMEOUT, self.MAX_TURNS, self.PLAYER_WHITE, self.PLAYER_BLACK, self.ALPHA_BETA, self.current_game_state)
+        output_file = self.create_game_trace_file(self.AI_TIMEOUT, self.MAX_TURNS, self.PLAYER_WHITE, self.PLAYER_BLACK, self.ALPHA_BETA, self.current_game_state, "e0")
 
         # Play until a king is captured or we have a draw
         drawTimer = 20
@@ -645,7 +669,9 @@ class MiniChess:
             print()
             print(action_display)
             # Log action
-            self.log_action(output_file, self.turn_counter, current_player, move_string.upper(), "H", self.current_game_state)
+            current_player_ai = (self.current_game_state["turn"] == "white" and self.PLAYER_WHITE == "A") or (self.current_game_state["turn"] == "black" and self.PLAYER_BLACK == "A")
+            self.log_action(output_file, self.turn_counter, current_player, move_string.upper(), "A" if current_player_ai else "H", self.current_game_state, time_taken if time_taken is not None else None, heuristic_score if heuristic_score is not None else None, self.ALPHA_BETA, best_score[0] if best_score[0] is not None else None)
+            
             if (self.current_game_state['turn'] == "white"):
                 self.turn_counter+=1
             self.promotePawn(self.current_game_state) # Check if a pawn reached the other end of the board at the end of this turn, if so, promote it.
