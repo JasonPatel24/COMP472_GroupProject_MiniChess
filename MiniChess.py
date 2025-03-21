@@ -602,10 +602,6 @@ class MiniChess:
     def log_error(self, file, turn, player, action):
         file.write(f"\nInvalid input: {player} tried to enter {action} on turn {turn}.\n")
 
-    # TODO: Remove function when done testing
-    def testAIPlay(self):
-        return self.build_decision_tree(self.current_game_state, 0, self.MAX_DEPTH)
-
     """
     Game loop
 
@@ -625,9 +621,6 @@ class MiniChess:
         while self.isKingCaptured(self.current_game_state) == "" and drawTimer > 0 and self.turn_counter <= self.MAX_TURNS:
             self.display_board(self.current_game_state)
             current_player=self.current_game_state['turn'].capitalize()
-            # TODO: Remove these lines before submitting
-            print()
-            print(f"Current e(n): White advantage over Black: {self.calculate_heuristic(self.current_game_state['board'])}")
 
             # Human plays
             if (self.current_game_state["turn"] == "white" and self.PLAYER_WHITE == "H") or (self.current_game_state["turn"] == "black" and self.PLAYER_BLACK == "H"):
