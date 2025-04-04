@@ -755,9 +755,16 @@ class MiniChess:
                     break
                 print("Invalid input. Please enter 'Y' for Alpha-Beta or 'N' for Min-Max.")
 
+            while True:
+                user_input = input("Maximum depth: ").strip()
+                if user_input.isdigit() and int(user_input) > 0:
+                    self.MAX_DEPTH = int(user_input)  # Convert to integer after validation
+                    break
+                print("Invalid input. Please enter a positive integer.")
+
             if alpha_beta == "Y":
                 self.ALPHA_BETA = True
-                self.MAX_DEPTH = self.MAX_DEPTH*2  # Deeper search with alpha-beta
+                #self.MAX_DEPTH = self.MAX_DEPTH*2  # Deeper search with alpha-beta
             else:
                 self.ALPHA_BETA = False
 
