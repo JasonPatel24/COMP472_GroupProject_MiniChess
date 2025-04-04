@@ -501,7 +501,7 @@ class MiniChess:
     Returns:
         - File used for output
     """
-    def create_game_trace_file(self, timeout, max_turns, player_1_type, player_2_type, alpha_beta, initial_state, heuristic=None):
+    def create_game_trace_file(self, timeout, max_turns, max_depth, player_1_type, player_2_type, alpha_beta, initial_state, heuristic=None):
         # Create output file in downloads folder
         downloads_folder = os.path.join(os.path.expanduser("~"), "Downloads")
         filename = os.path.join(downloads_folder, f"gameTrace-{str(alpha_beta).lower()}-{timeout}-{max_turns}.txt")
@@ -511,6 +511,7 @@ class MiniChess:
         file.write("=== Game Parameters ===\n")
         file.write(f"Timeout: {timeout} seconds\n")
         file.write(f"Max turns: {max_turns}\n")
+        file.write(f"Max depth: {max_turns}\n")
         file.write(f"Player 1 type: {player_1_type} & Player 2 type: {player_2_type}\n")
         # AI parameters
         if player_1_type == "A" or player_2_type == "A":
@@ -540,7 +541,7 @@ class MiniChess:
         - None
     """
     def log_action(self, file, turn, player, action, player_type, current_state, time_taken=None, heuristic_score=None, alpha_beta=False, method_score=None):
-        file.write(f"\n\nPlayer: {player}, Turn #{turn}, Action: {action}\n")
+        file.write(f"\n\nPlayer: {player}, Type: {player_type}, Turn #{turn}, Action: {action}\n")
         if player_type == "A":
             file.write(f"Time for this action: {time_taken:.2f} sec\n")
             file.write(f"Heuristic score: {heuristic_score}\n")
@@ -614,16 +615,24 @@ class MiniChess:
         print()
         self.user_game_parameters() # Get user input for game parameters
         # Create output file with parameters
-        output_file = self.create_game_trace_file(self.AI_TIMEOUT, self.MAX_TURNS, self.PLAYER_WHITE, self.PLAYER_BLACK, self.ALPHA_BETA, self.current_game_state, "e0")
+        output_file = self.create_game_trace_file(self.AI_TIMEOUT, self.MAX_TURNS, self.MAX_DEPTH, self.PLAYER_WHITE, self.PLAYER_BLACK, self.ALPHA_BETA, self.current_game_state, "e0")
 
         # Play until a king is captured or we have a draw
         drawTimer = 20
         while self.isKingCaptured(self.current_game_state) == "" and drawTimer > 0 and self.turn_counter <= self.MAX_TURNS:
+            # reset variables
+            time_taken = None
+            heuristic_score = None
+            best_score = None
+
             self.display_board(self.current_game_state)
             current_player=self.current_game_state['turn'].capitalize()
+            # track current player type
+            current_player_ai = (self.current_game_state["turn"] == "white" and self.PLAYER_WHITE == "A") or (self.current_game_state["turn"] == "black" and self.PLAYER_BLACK == "A")
+            
 
             # Human plays
-            if (self.current_game_state["turn"] == "white" and self.PLAYER_WHITE == "H") or (self.current_game_state["turn"] == "black" and self.PLAYER_BLACK == "H"):
+            if (not current_player_ai):
                 print("Enter moves as 'B2 B3'. Type 'exit' to quit.")
                 move = input(f"{self.current_game_state['turn'].capitalize()} to move: ").strip()
                 if move.lower() == 'exit':
@@ -640,7 +649,7 @@ class MiniChess:
                 self.make_move(self.current_game_state, move)
 
             # AI plays
-            elif (self.current_game_state["turn"] == "white" and self.PLAYER_WHITE == "A") or (self.current_game_state["turn"] == "black" and self.PLAYER_BLACK == "A"):
+            elif (current_player_ai):
                 print("Wait for AI to make a move...")
                 start_time = time.time()
                 # Run minimax or alphabeta
@@ -674,8 +683,7 @@ class MiniChess:
             print()
             print(action_display)
             # Log action
-            current_player_ai = (self.current_game_state["turn"] == "white" and self.PLAYER_WHITE == "A") or (self.current_game_state["turn"] == "black" and self.PLAYER_BLACK == "A")
-            self.log_action(output_file, self.turn_counter, current_player, move_string.upper(), "A" if current_player_ai else "H", self.current_game_state, time_taken if time_taken is not None else None, heuristic_score if heuristic_score is not None else None, self.ALPHA_BETA, best_score[0] if best_score[0] is not None else None)
+            self.log_action(output_file, self.turn_counter, current_player, move_string.upper(), "A" if current_player_ai else "H", self.current_game_state, time_taken if time_taken is not None else None, heuristic_score if heuristic_score is not None else None, self.ALPHA_BETA, best_score[0] if best_score and len(best_score) > 0 and best_score[0] is not None else None)
             
             if (self.current_game_state['turn'] == "white"):
                 self.turn_counter+=1
