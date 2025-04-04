@@ -343,7 +343,7 @@ class MiniChess:
         # Create node given board state
         if (current_level == self.MAX_DEPTH) or (time.time() - start_time >= self.AI_TIMEOUT*self.MINIMAX_TIMEOUT_MULTIPLIER):  # Terminal node
             # Node gets a heuristic
-            e = self.calculate_heuristic(game_state["board"])
+            e = self.calculate_heuristic(game_state)
             board = copy.deepcopy(game_state["board"])
             return Node(board, e, [])
         else:
@@ -371,7 +371,8 @@ class MiniChess:
     def minimax(self, node, depth, maximizingPlayer, start_time):   
         # Sometimes the heuristic is not calculated, so we calculate it here to avoid errors
         if node.heuristic is None:
-            node.heuristic = self.calculate_heuristic(node.board_state)
+            turn = "white" if maximizingPlayer else "black"
+            node.heuristic = self.calculate_heuristic({"turn": turn, "board":node.board_state})
 
         if depth == 0 or not node.children:  #Terminal node (reached max depth or no more children)
             return node.heuristic, node #return the heuristic of the node aswell as the node to make the move
@@ -433,41 +434,125 @@ class MiniChess:
                     break
             return v, best_node  # Return both the best value and the corresponding node
 
+    # Utility function for turning string-format board coordinates into 2D-array indices
+    def coordsToIndices(self, move_str):
+        columnLetters = ['A', 'B', 'C', 'D', 'E']
+        coordinates = str.split(move_str, ' ')[1]
+        return [int(coordinates[1]) - 1, columnLetters.index(coordinates[0])]
 
     # Heuristic function e(n), which approximates the odds of White winning over Black
-    def calculate_heuristic(self, board_state):
+    # e1 increases the pawn's value based on how close it is to reaching the other side of the board (how close it is to becoming a queen)
+    # e2 increases the piece's value based on whether or not it endangers the enemy king
+    def calculate_heuristic(self, board_state, heuristic = "e2"):
+        e1 = False 
+        e2 = False
+        if heuristic == "e1":
+            e1 = True
+        elif heuristic == "e2":
+            e2 = True
+        elif heuristic == "e0":
+            e1 = False
+            e2 = False
+        else:
+            print("Invalid heuristic '" + heuristic + "', please re-run the program with a valid heuristic option.")
+            exit()
+
         e = 0
+        E2_WEIGHT = 10
 
         # Current heurstic used for D2 is e_0 (see project spec)
-        for row in range(0, len(board_state)):
-            for col in range(0, len(board_state[row])):
+        for row in range(0, len(board_state["board"])):
+            for col in range(0, len(board_state["board"][row])):
 
                 # e > 0: White has the advantage
                 # e = 0: Game is in a neutral state
                 # e < 0: Black has the advantage
                 # Depending on the importance of the piece, their presence (or lack thereof) affects the odds for their respective side (pawns are worth 1, bishops and knights 3, etc.)
-                if board_state[row][col] == "wp":
+                if board_state["board"][row][col] == "wp":
+                    if (e1):
+                        # Calculate how close pawn is to opposing side, increase point value by inverse of total number of turns needed to reach it
+                        e += 3 - row
+
+                    # Determine pawn's possible moves. If the enemy king is at the end of one of those moves, increase pawn's weight
+                    elif (e2):
+                        for move in self.calculatePawnMoves(board_state, row, col):
+                            r, c = self.coordsToIndices(move)
+                            if (board_state["board"][r][c] == "bK"):
+                                e += E2_WEIGHT
+                                break
+
                     e += 1
 
-                elif board_state[row][col] == "wB" or board_state[row][col] == "wN":
+                elif board_state["board"][row][col] == "wB" or board_state["board"][row][col] == "wN":
+                    if (e2):
+                        moves = self.calculateBishopMoves(board_state, row, col) if (board_state["board"][row][col] == "wB") else self.calculateKnightMoves(board_state, row, col)
+                        for move in moves:
+                            r, c = self.coordsToIndices(move)
+                            if (board_state["board"][r][c] == "bK"):
+                                e += 3 * E2_WEIGHT
+                                break
                     e += 3
 
-                elif board_state[row][col] == "wQ":
+                elif board_state["board"][row][col] == "wQ":
+                    if (e2):
+                        for move in self.calculateQueenMoves(board_state, row, col):
+                            r, c = self.coordsToIndices(move)
+                            if (board_state["board"][r][c] == "bK"):
+                                e += 9 * E2_WEIGHT
+                                break
                     e += 9
 
-                elif board_state[row][col] == "wK":
+                elif board_state["board"][row][col] == "wK":
+                    if (e2):
+                        for move in self.calculateKingMoves(board_state, row, col):
+                            r, c = self.coordsToIndices(move)
+                            if (board_state["board"][r][c] == "bK"):
+                                e += E2_WEIGHT
+                                break
                     e += 999
                     
-                elif board_state[row][col] == "bp":
+                elif board_state["board"][row][col] == "bp":
+                    if (e1):
+                        # Calculate how close pawn is to opposing side, increase point value by inverse of total number of turns needed to reach it
+                        e -= row - 1
+
+                    # Determine pawn's possible moves. If the enemy king is at the end of one of those moves, increase pawn's weight
+                    elif (e2):
+                        for move in self.calculatePawnMoves(board_state, row, col):
+                            r, c = self.coordsToIndices(move)
+                            if (board_state["board"][r][c] == "wK"):
+                                e -= E2_WEIGHT
+                                break
+
                     e -= 1
 
-                elif board_state[row][col] == "bB" or board_state[row][col] == "bN":
+                elif board_state["board"][row][col] == "bB" or board_state["board"][row][col] == "bN":
+                    if (e2):
+                        moves = self.calculateBishopMoves(board_state, row, col) if (board_state["board"][row][col] == "wB") else self.calculateKnightMoves(board_state, row, col)
+                        for move in moves:
+                            r, c = self.coordsToIndices(move)
+                            if (board_state["board"][r][c] == "wK"):
+                                e -= 3 * E2_WEIGHT
+                                break
                     e -= 3
 
-                elif board_state[row][col] == "bQ":
+                elif board_state["board"][row][col] == "bQ":
+                    if (e2):
+                        for move in self.calculateQueenMoves(board_state, row, col):
+                            r, c = self.coordsToIndices(move)
+                            if (board_state["board"][r][c] == "wK"):
+                                e -= 9 * E2_WEIGHT
+                                break
                     e -= 9
 
-                elif board_state[row][col] == "bK":
+                elif board_state["board"][row][col] == "bK":
+                    if (e2):
+                        for move in self.calculateKingMoves(board_state, row, col):
+                            r, c = self.coordsToIndices(move)
+                            if (board_state["board"][r][c] == "wK"):
+                                e -= E2_WEIGHT
+                                break
+
                     e -= 999
 
                 else:
