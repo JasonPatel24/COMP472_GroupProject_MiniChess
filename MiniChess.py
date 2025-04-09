@@ -398,41 +398,74 @@ class MiniChess:
                     bestChild = child
             return minEval, bestChild
 
+    def alphabeta_search(self, game_state, depth, alpha, beta, maximizing_player, start_time):
+        # Count this state
+        self.total_states_explored += 1
     
-    def alphabeta(self, origin_node, depth, alpha, beta, maximizingPlayer):  #Depth is the same as maxdepth initially
-        # Sometimes the heuristic is not calculated, so we calculate it here to avoid errors
-        if origin_node.heuristic is None:
-            origin_node.heuristic = self.calculate_heuristic(origin_node.board_state)
-
-        if depth == 0 or not origin_node.children:  #Terminal node (reached max depth or no more children)
-            return origin_node.heuristic, origin_node    
-           
-        # White is max
-        # Black is min
-        if maximizingPlayer:
-            v = -math.inf
-            best_node = None
-            for child in origin_node.children:
-                child_value, _ = self.alphabeta(child, depth - 1, alpha, beta, False)
-                if child_value > v:
-                    v = child_value
-                    best_node = child
-                alpha = max(alpha, v)
-                if beta <= alpha: #Prune
-                    break
-            return v, best_node  # Return both the best value and the corresponding node
+        # Track states by depth
+        current_level = self.MAX_DEPTH - depth
+        if current_level in self.states_by_depth:
+            self.states_by_depth[current_level] += 1
         else:
-            v = math.inf
-            best_node = None
-            for child in origin_node.children:
-                child_value, _ = self.alphabeta(child, depth - 1, alpha, beta, True)
-                if child_value < v:
-                    v = child_value
-                    best_node = child
-                beta = min(beta, v)
-                if beta <= alpha: #Prune
-                    break
-            return v, best_node  # Return both the best value and the corresponding node
+            self.states_by_depth[current_level] = 1
+        
+        # Check terminal conditions
+        if depth == 0 or time.time() - start_time >= float(self.AI_TIMEOUT) * 0.9:
+            score = self.calculate_heuristic(game_state)
+            return score, None
+            
+        # Get possible moves
+        valid_moves = self.valid_moves(game_state)
+        if not valid_moves:  # Game over
+            score = self.calculate_heuristic(game_state)
+            return score, None
+            
+        # Track branching factor
+        self.total_branches += len(valid_moves)
+        self.total_branch_nodes += 1
+        
+        best_move = None
+        
+        if maximizing_player:
+            best_score = -math.inf
+            for move in valid_moves:
+                # Make move
+                new_state = self.make_move(copy.deepcopy(game_state), self.parse_input(move))
+                
+                # Recursively evaluate
+                score, _ = self.alphabeta_search(new_state, depth - 1, alpha, beta, False, start_time)
+                
+                # Update best
+                if score > best_score:
+                    best_score = score
+                    best_move = move
+                    
+                # Pruning check
+                alpha = max(alpha, best_score)
+                if beta <= alpha:
+                    break  # Prune remaining branches
+                    
+            return best_score, best_move
+        else:
+            best_score = math.inf
+            for move in valid_moves:
+                # Make move
+                new_state = self.make_move(copy.deepcopy(game_state), self.parse_input(move))
+                
+                # Recursively evaluate
+                score, _ = self.alphabeta_search(new_state, depth - 1, alpha, beta, True, start_time)
+                
+                # Update best
+                if score < best_score:
+                    best_score = score
+                    best_move = move
+                    
+                # Pruning check
+                beta = min(beta, best_score)
+                if beta <= alpha:
+                    break  # Prune remaining branches
+                    
+            return best_score, best_move
 
     # Utility function for turning string-format board coordinates into 2D-array indices
     def coordsToIndices(self, move_str):
@@ -737,38 +770,57 @@ class MiniChess:
             elif (current_player_ai):
                 print("Wait for AI to make a move...")
                 start_time = time.time()
+                
                 # Run minimax or alphabeta
                 if self.ALPHA_BETA:
-                    # Create the decision tree and run alphabeta
-                    decision_tree = self.build_decision_tree(self.current_game_state, 0, start_time)
-                    best_score = self.alphabeta(decision_tree, self.MAX_DEPTH, -math.inf, math.inf, self.current_game_state["turn"] == "white")
-                else:
-                    # Create the decision tree and run minimax
-                    decision_tree = self.build_decision_tree(self.current_game_state, 0,start_time)
-                    best_score = self.minimax(decision_tree, self.MAX_DEPTH, self.current_game_state["turn"] == "white",start_time)
-                # Get the best child node
-                best_child = best_score[1]
-                # Get the move that led to the best child node
-                move = None
-                for i in range(0, len(decision_tree.children)):               
-                    if decision_tree.children[i] == best_child:
-                        move = self.valid_moves(self.current_game_state)[i]
+                    # Use alphabeta_search that builds tree as it goes
+                    best_value, move_string = self.alphabeta_search(
+                        self.current_game_state, 
+                        self.MAX_DEPTH, 
+                        -math.inf, 
+                        math.inf, 
+                        self.current_game_state["turn"] == "white",
+                        start_time
+                    )
+                    # We already have the move string directly
+                    heuristic_score = best_value
+                    best_score = best_value  # For logging
+                    
+                    # Make the move directly
+                    if move_string:
+                        self.make_move(self.current_game_state, self.parse_input(move_string))
+                    else:
+                        print("No valid move found. Game ending.")
+                        self.log_end(output_file, self.turn_counter, True)
                         break
-                # Make the move
-                move_string = move  # Save string representation of the move
-                heuristic_score = best_child.heuristic
-                self.make_move(self.current_game_state, self.parse_input(move))
+                else:
+                    # Create the decision tree and run minimax (tuple unpacking)
+                    decision_tree = self.build_decision_tree(self.current_game_state, 0,start_time)
+                    best_value, best_child = self.minimax(decision_tree, self.MAX_DEPTH, self.current_game_state["turn"] == "white",start_time)
+                    best_score = best_value
+                    
+                    # Get the move that led to the best child node
+                    move_string = None
+                    for i in range(0, len(decision_tree.children)):               
+                        if decision_tree.children[i] == best_child:
+                            move_string = self.valid_moves(self.current_game_state)[i]
+                            break
+                            
+                    # Make the move
+                    heuristic_score = best_child.heuristic if best_child else None
+                    self.make_move(self.current_game_state, self.parse_input(move_string))
+                
                 time_taken = time.time() - start_time # Calculate time taken for AI move
                 print(f"Time taken for AI move: {time_taken:.2f} sec")
                 print(f"Heuristic score of adversarial search: {heuristic_score}")
-                self.print_AI_info()  # Print cumulative AI info
 
             #POST TURN ACTIONS
             action_display = f"{current_player} moved from {move_string.split()[0]} to {move_string.split()[1]}"
             print()
             print(action_display)
+            self.print_AI_info()
             # Log action
-            self.log_action(output_file, self.turn_counter, current_player, move_string.upper(), "A" if current_player_ai else "H", self.current_game_state, time_taken if time_taken is not None else None, heuristic_score if heuristic_score is not None else None, self.ALPHA_BETA, best_score[0] if best_score and len(best_score) > 0 and best_score[0] is not None else None)
+            #self.log_action(output_file, self.turn_counter, current_player, move_string.upper(), "A" if current_player_ai else "H", self.current_game_state, time_taken if time_taken is not None else None, heuristic_score if heuristic_score is not None else None, self.ALPHA_BETA, best_score[0] if best_score and len(best_score) > 0 and best_score[0] is not None else None)
             
             if (self.current_game_state['turn'] == "white"):
                 self.turn_counter+=1
