@@ -737,6 +737,7 @@ class MiniChess:
 
         # Play until a king is captured or we have a draw
         drawTimer = 20
+        current_turn = 0
         while self.isKingCaptured(self.current_game_state) == "" and drawTimer > 0 and self.turn_counter <= self.MAX_TURNS:
             # reset variables
             time_taken = None
@@ -747,7 +748,8 @@ class MiniChess:
             current_player=self.current_game_state['turn'].capitalize()
             # track current player type
             current_player_ai = (self.current_game_state["turn"] == "white" and self.PLAYER_WHITE == "A") or (self.current_game_state["turn"] == "black" and self.PLAYER_BLACK == "A")
-            
+            #track current turn
+            current_turn = self.turn_counter
 
             # Human plays
             if (not current_player_ai):
@@ -841,19 +843,19 @@ class MiniChess:
         print()
         if result == self.WHITE_KING_CAPTURED:
             # Black wins
-            print(f"Black wins in {self.turn_counter} turns!")
+            print(f"Black wins in {current_turn} turns!")
             # Log game over
-            self.log_end(output_file, self.turn_counter, False, "Black")
+            self.log_end(output_file, current_turn, False, "Black")
         elif result == self.BLACK_KING_CAPTURED:
             # White wins
-            print(f"White wins in {self.turn_counter} turns!")
+            print(f"White wins in {current_turn} turns!")
             # Log game over
-            self.log_end(output_file, self.turn_counter, False, "White")
+            self.log_end(output_file, current_turn, False, "White")
         else:
             # If no king is captured, then we have a draw
-            print(f"Draw after {self.turn_counter} turns!")
+            print(f"Draw after {current_turn} turns!")
             # Log game over
-            self.log_end(output_file, self.turn_counter, True)
+            self.log_end(output_file, current_turn, True)
 
         #GAME ENDS HERE
         print("Thank you for playing!")
