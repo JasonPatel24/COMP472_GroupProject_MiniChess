@@ -629,7 +629,7 @@ class MiniChess:
         file.write("=== Game Parameters ===\n")
         file.write(f"Timeout: {timeout} seconds\n")
         file.write(f"Max turns: {max_turns}\n")
-        file.write(f"Max depth: {max_turns}\n")
+        file.write(f"Max depth: {max_depth}\n")
         file.write(f"Player 1 type: {player_1_type} & Player 2 type: {player_2_type}\n")
         # AI parameters
         if player_1_type == "A" or player_2_type == "A":
@@ -832,7 +832,7 @@ class MiniChess:
             new_num_pieces = self.checkNumberOfPieces(self.current_game_state)
             if (self.num_pieces > new_num_pieces):
                 # A piece has been captured
-                drawTimer = 20
+                drawTimer = self.MAX_TURNS
                 self.num_pieces = new_num_pieces
             else:
                 # No pieces have been captured this turn
