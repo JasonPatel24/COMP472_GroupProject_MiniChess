@@ -832,7 +832,7 @@ class MiniChess:
             new_num_pieces = self.checkNumberOfPieces(self.current_game_state)
             if (self.num_pieces > new_num_pieces):
                 # A piece has been captured
-                drawTimer = self.MAX_TURNS
+                drawTimer = self.MAX_TURNS*2
                 self.num_pieces = new_num_pieces
             else:
                 # No pieces have been captured this turn
