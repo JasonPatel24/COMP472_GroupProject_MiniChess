@@ -818,7 +818,8 @@ class MiniChess:
             action_display = f"{current_player} moved from {move_string.split()[0]} to {move_string.split()[1]}"
             print()
             print(action_display)
-            self.print_AI_info()
+            if (current_player_ai):
+                self.print_AI_info()
             # Log action
             #self.log_action(output_file, self.turn_counter, current_player, move_string.upper(), "A" if current_player_ai else "H", self.current_game_state, time_taken if time_taken is not None else None, heuristic_score if heuristic_score is not None else None, self.ALPHA_BETA, best_score[0] if best_score and len(best_score) > 0 and best_score[0] is not None else None)
             
